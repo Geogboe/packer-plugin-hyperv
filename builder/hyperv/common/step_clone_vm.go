@@ -75,7 +75,7 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 	// convert the MB to bytes
 	ramSize := int64(s.RamSize * 1024 * 1024)
 
-	var cloneFromVMCXPath string = s.CloneFromVMCXPath
+	cloneFromVMCXPath := s.CloneFromVMCXPath
 	if wsl.IsWSL() {
 		var err error
 		cloneFromVMCXPath, err = wsl.ConvertWSlPathToWindowsPath(s.CloneFromVMCXPath)
