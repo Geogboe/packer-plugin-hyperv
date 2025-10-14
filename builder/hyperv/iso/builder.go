@@ -84,13 +84,13 @@ type Config struct {
 	// your source is a VHD/VHDX. This defaults to false.
 	DifferencingDisk bool `mapstructure:"differencing_disk" required:"false"`
 	// If true, creates the boot disk on the
-	// virtual machine as a fixed VHD format disk. The default is false, which
-	// creates a dynamic VHDX format disk. This option requires setting
-	// generation to 1, skip_compaction to true, and
-	// differencing_disk to false. Additionally, any value entered for
-	// disk_block_size will be ignored. The most likely use case for this
-	// option is outputing a disk that is in the format required for upload to
-	// Azure.
+	// virtual machine as a fixed disk. Generation 1 builds emit a fixed VHD
+	// (`.vhd`), while Generation 2 builds emit a fixed VHDX (`.vhdx`). The
+	// default is false, which creates a dynamic VHDX format disk. This option
+	// requires skip_compaction to be true and differencing_disk to be false.
+	// Additionally, any value entered for disk_block_size will be ignored. The
+	// most likely use case for this option is outputing a disk in the fixed
+	// format required for certain cloud uploads, such as Azure.
 	FixedVHD bool `mapstructure:"use_fixed_vhd_format" required:"false"`
 
 	ctx interpolate.Context
@@ -153,11 +153,6 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	}
 
 	// Errors
-
-	if b.config.Generation > 1 && b.config.FixedVHD {
-		err = errors.New("Fixed VHD disks are only supported on Generation 1 virtual machines.")
-		errs = packersdk.MultiErrorAppend(errs, err)
-	}
 
 	if !b.config.SkipCompaction && b.config.FixedVHD {
 		err = errors.New("Fixed VHD disks do not support compaction.")
@@ -380,12 +375,25 @@ func (b *Builder) checkDiskSize() error {
 	if b.config.DiskSize < MinDiskSize {
 		return fmt.Errorf("disk_size: Virtual machine requires disk space >= %v GB, but defined: %v",
 			MinDiskSize, b.config.DiskSize/1024)
-	} else if b.config.DiskSize > MaxDiskSize && !b.config.FixedVHD {
+	}
+
+	normalizedGeneration := b.config.Generation
+	if normalizedGeneration == 0 {
+		normalizedGeneration = 1
+	}
+
+	maxAllowed := uint(MaxDiskSize)
+	if b.config.FixedVHD && normalizedGeneration == 1 {
+		maxAllowed = uint(MaxVHDSize)
+	}
+
+	if b.config.DiskSize > maxAllowed {
+		if b.config.FixedVHD && normalizedGeneration == 1 {
+			return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
+				MaxVHDSize/1024, b.config.DiskSize/1024)
+		}
 		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
 			MaxDiskSize, b.config.DiskSize/1024)
-	} else if b.config.DiskSize > MaxVHDSize && b.config.FixedVHD {
-		return fmt.Errorf("disk_size: Virtual machine requires disk space <= %v GB, but defined: %v",
-			MaxVHDSize/1024, b.config.DiskSize/1024)
 	}
 
 	return nil

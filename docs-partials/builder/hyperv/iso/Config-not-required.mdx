@@ -20,12 +20,12 @@
   your source is a VHD/VHDX. This defaults to false.
 
 - `use_fixed_vhd_format` (bool) - If true, creates the boot disk on the
-  virtual machine as a fixed VHD format disk. The default is false, which
-  creates a dynamic VHDX format disk. This option requires setting
-  generation to 1, skip_compaction to true, and
-  differencing_disk to false. Additionally, any value entered for
-  disk_block_size will be ignored. The most likely use case for this
-  option is outputing a disk that is in the format required for upload to
-  Azure.
+  virtual machine as a fixed disk. Generation 1 builds emit a fixed VHD
+  (`.vhd`) while Generation 2 builds emit a fixed VHDX (`.vhdx`). The default
+  is false, which creates a dynamic VHDX format disk. This option requires
+  skip_compaction to be true and differencing_disk to be false. Additionally,
+  any value entered for disk_block_size will be ignored. The most likely use
+  case for this option is outputing a disk that is in the format required for
+  upload to Azure.
 
 <!-- End of code generated from the comments of the Config struct in builder/hyperv/iso/builder.go; -->
