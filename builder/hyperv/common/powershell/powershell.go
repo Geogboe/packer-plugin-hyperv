@@ -4,11 +4,9 @@
 package powershell
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -34,82 +32,28 @@ func IsFalse(s string) bool {
 type PowerShellCmd struct {
 	Stdout io.Writer
 	Stderr io.Writer
+	Env    map[string]string
 }
 
 func (ps *PowerShellCmd) Run(fileContents string, params ...string) error {
-	_, err := ps.Output(fileContents, params...)
+	_, err := execute(fileContents, &ExecuteOptions{
+		Params: params,
+		Stdout: ps.Stdout,
+		Stderr: ps.Stderr,
+		Env:    ps.Env,
+	})
 	return err
 }
 
 // Output runs the PowerShell command and returns its standard output.
 func (ps *PowerShellCmd) Output(fileContents string, params ...string) (string, error) {
-	path, err := ps.getPowerShellPath()
-	if err != nil {
-		return "", fmt.Errorf("Cannot find PowerShell in the path")
-	}
-
-	filename, err := saveScript(fileContents)
-	if err != nil {
-		return "", err
-	}
-
-	debug := os.Getenv("PACKER_POWERSHELL_DEBUG") != ""
-	verbose := debug || os.Getenv("PACKER_POWERSHELL_VERBOSE") != ""
-
-	if !debug {
-		defer os.Remove(filename)
-	}
-	if wsl.IsWSL() {
-		filename, err = wsl.ConvertWSlPathToWindowsPath(filename)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	args := createArgs(filename, params...)
-
-	if verbose {
-		log.Printf("Run: %s %s", path, args)
-	}
-
-	var stdout, stderr bytes.Buffer
-	command := exec.Command(path, args...)
-	command.Stdout = &stdout
-	command.Stderr = &stderr
-
-	err = command.Run()
-
-	if ps.Stdout != nil {
-		stdout.WriteTo(ps.Stdout)
-	}
-
-	if ps.Stderr != nil {
-		stderr.WriteTo(ps.Stderr)
-	}
-
-	stderrString := strings.TrimSpace(stderr.String())
-
-	if _, ok := err.(*exec.ExitError); ok {
-		err = fmt.Errorf("PowerShell error: %s", stderrString)
-	}
-
-	if len(stderrString) > 0 {
-		err = fmt.Errorf("PowerShell error: %s", stderrString)
-	}
-
-	stdoutString := strings.TrimSpace(stdout.String())
-
-	if verbose && stdoutString != "" {
-		log.Printf("stdout: %s", stdoutString)
-	}
-
-	// only write the stderr string if verbose because
-	// the error string will already be in the err return value.
-	if verbose && stderrString != "" {
-		log.Printf("stderr: %s", stderrString)
-	}
-
-	return stdoutString, err
+	return execute(fileContents, &ExecuteOptions{
+		Params:        params,
+		Stdout:        ps.Stdout,
+		Stderr:        ps.Stderr,
+		Env:           ps.Env,
+		CaptureOutput: true,
+	})
 }
 
 func IsPowershellAvailable() (bool, string, error) {
@@ -121,14 +65,13 @@ func IsPowershellAvailable() (bool, string, error) {
 	}
 }
 
-func (ps *PowerShellCmd) getPowerShellPath() (string, error) {
+func getPowerShellPath() (string, error) {
 	powershellAvailable, path, err := IsPowershellAvailable()
 	if err != nil {
-		log.Fatalf("IsPowershellAvailable: %v", err)
+		return "", fmt.Errorf("IsPowershellAvailable: %w", err)
 	}
 	if !powershellAvailable {
-		log.Fatal("Cannot find PowerShell in the path")
-		return "", err
+		return "", fmt.Errorf("cannot find PowerShell in the path")
 	}
 
 	return path, nil
@@ -178,20 +121,27 @@ func saveScript(fileContents string) (string, error) {
 }
 
 func createArgs(filename string, params ...string) []string {
-	args := make([]string, len(params)+5)
-	args[0] = "-ExecutionPolicy"
-	args[1] = "Bypass"
+	args := make([]string, 0, len(params)+6)
+	args = append(args, "-ExecutionPolicy", "Bypass", "-NoProfile", "-NonInteractive", "-NoLogo")
 
-	args[2] = "-NoProfile"
-
-	args[3] = "-File"
-	args[4] = filename
-
-	for key, value := range params {
-		args[key+5] = value
+	invocation := make([]string, 0, len(params)+1)
+	invocation = append(invocation, fmt.Sprintf("& '%s'", filename))
+	for _, value := range params {
+		invocation = append(invocation, escapePowerShellArgument(value))
 	}
 
+	args = append(args, "-Command", strings.Join(invocation, " "))
+
 	return args
+}
+
+func escapePowerShellArgument(arg string) string {
+	if arg == "" {
+		return "''"
+	}
+
+	escaped := strings.ReplaceAll(arg, "'", "''")
+	return fmt.Sprintf("'%s'", escaped)
 }
 
 func GetHostAvailableMemory() float64 {

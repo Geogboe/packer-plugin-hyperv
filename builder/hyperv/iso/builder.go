@@ -63,6 +63,7 @@ type Config struct {
 	hypervcommon.OutputConfig      `mapstructure:",squash"`
 	hypervcommon.SSHConfig         `mapstructure:",squash"`
 	hypervcommon.CommonConfig      `mapstructure:",squash"`
+	hypervcommon.RemoteConfig      `mapstructure:",squash"`
 	shutdowncommand.ShutdownConfig `mapstructure:",squash"`
 	// Packer normally halts the virtual machine after all provisioners have
 	// run when no `shutdown_command` is defined. If this is set to `true`, Packer
@@ -130,6 +131,10 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	commonErrs, commonWarns := b.config.CommonConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)
 	errs = packersdk.MultiErrorAppend(errs, commonErrs...)
 	warnings = append(warnings, commonWarns...)
+
+	remoteErrs, remoteWarns := b.config.RemoteConfig.Prepare(&b.config.ctx)
+	errs = packersdk.MultiErrorAppend(errs, remoteErrs...)
+	warnings = append(warnings, remoteWarns...)
 
 	if len(b.config.ISOConfig.ISOUrls) < 1 ||
 		(strings.ToLower(filepath.Ext(b.config.ISOConfig.ISOUrls[0])) != ".vhd" &&
