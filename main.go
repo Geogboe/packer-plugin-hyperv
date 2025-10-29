@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/plugin"
 
 	"github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/iso"
+	"github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/null"
 	"github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/vmcx"
 	"github.com/hashicorp/packer-plugin-hyperv/version"
 )
@@ -17,6 +18,7 @@ import (
 func main() {
 	pps := plugin.NewSet()
 	pps.RegisterBuilder("iso", new(iso.Builder))
+	pps.RegisterBuilder("null", new(null.Builder))
 	pps.RegisterBuilder("vmcx", new(vmcx.Builder))
 	pps.SetVersion(version.PluginVersion)
 	err := pps.Run()

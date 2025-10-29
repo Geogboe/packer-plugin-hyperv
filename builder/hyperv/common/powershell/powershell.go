@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -74,6 +75,7 @@ func (ps *PowerShellCmd) Output(fileContents string, params ...string) (string, 
 
 	var stdout, stderr bytes.Buffer
 	command := exec.Command(path, args...)
+	command.Env = CommandEnv()
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 
@@ -204,6 +206,66 @@ func GetHostAvailableMemory() float64 {
 	freeMB, _ := strconv.ParseFloat(output, 64)
 
 	return freeMB
+}
+
+func CommandEnv() []string {
+	env := os.Environ()
+	sanitized := sanitizeModulePath(os.Getenv("PSModulePath"))
+
+	const upperKey = "PSMODULEPATH="
+	filtered := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if strings.HasPrefix(strings.ToUpper(entry), upperKey) {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+
+	if sanitized != "" {
+		filtered = append(filtered, "PSModulePath="+sanitized)
+	}
+
+	return filtered
+}
+
+func sanitizeModulePath(raw string) string {
+	sep := string(os.PathListSeparator)
+	seen := make(map[string]struct{})
+	var paths []string
+
+	add := func(p string) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return
+		}
+		cleaned := filepath.Clean(p)
+		key := strings.ToLower(cleaned)
+		if _, exists := seen[key]; exists {
+			return
+		}
+		seen[key] = struct{}{}
+		paths = append(paths, cleaned)
+	}
+
+	for _, segment := range strings.Split(raw, sep) {
+		lower := strings.ToLower(segment)
+		if strings.Contains(lower, "powershell\\7") || strings.Contains(lower, "powershell/7") {
+			continue
+		}
+		add(segment)
+	}
+
+	defaults := []string{
+		filepath.Join(os.Getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0", "Modules"),
+		filepath.Join(os.Getenv("ProgramFiles"), "WindowsPowerShell", "Modules"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Documents", "WindowsPowerShell", "Modules"),
+	}
+
+	for _, def := range defaults {
+		add(def)
+	}
+
+	return strings.Join(paths, sep)
 }
 
 func GetHostName(ip string) (string, error) {

@@ -20,7 +20,7 @@ packer {
 Alternatively, you can use `packer plugins install` to manage installation of this plugin.
 
 ```sh
-$ packer plugins install github.com/hashicorp/hyperv
+packer plugins install github.com/hashicorp/hyperv
 ```
 
 ### Components
@@ -36,10 +36,15 @@ $ packer plugins install github.com/hashicorp/hyperv
   virtual machine, provisions software within the OS, then exports that machine to create an image. This is best for people who have existing base
   images and want to customize them.
 
+- [hyperv-null](builders/null.mdx) - Connects to an existing VM and only runs provisioners. Useful for
+  iterating on communicators and provisioner logic without cloning or exporting new guests.
+
 ### Running from WSL2
 
 This plugin supports being run from WSL2 provided its run from a windows filesystem and the PACKER_CACHE_DIR is set to a path on the windows filesystem.
 
 For example, assuming a Windows username of `user`:
-    
-    /mnt/c/Users/user/$ PACKER_CACHE_DIR=/mnt/c/Users/user/.packer packer build ...
+
+```sh
+/mnt/c/Users/user/$ PACKER_CACHE_DIR=/mnt/c/Users/user/.packer packer build ...
+```

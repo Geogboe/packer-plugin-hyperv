@@ -4,6 +4,7 @@
 package common
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
@@ -32,5 +33,22 @@ func CommHost(host string) func(multistep.StateBag) (string, error) {
 		}
 
 		return ip, nil
+	}
+}
+
+// PowerShellDirectHost returns the VM name for display purposes when using PowerShell Direct.
+func PowerShellDirectHost() func(multistep.StateBag) (string, error) {
+	return func(state multistep.StateBag) (string, error) {
+		rawName, ok := state.GetOk("vmName")
+		if !ok {
+			return "", fmt.Errorf("vmName is not present in state")
+		}
+
+		name, ok := rawName.(string)
+		if !ok || name == "" {
+			return "", fmt.Errorf("vmName is not a valid string")
+		}
+
+		return name, nil
 	}
 }

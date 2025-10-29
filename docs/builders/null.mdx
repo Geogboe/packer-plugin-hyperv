@@ -1,0 +1,49 @@
+---
+title: Hyper-V Null Builder
+order: 30
+---
+
+The **hyperv-null** builder connects to an existing Hyper-V virtual machine and
+runs provisioners without creating, cloning, or exporting guests. It is a
+lightweight option for iterating on communicator changes—especially PowerShell
+Direct—before committing to longer ISO or VMCX workflows.
+
+> ⚠️ The builder never modifies the VM definition or disk layout; you are
+responsible for resetting any changes made by provisioners between runs.
+
+## Example
+
+```hcl
+variable "ps_vm_name" {
+  type    = string
+  default = env("HYPERV_PS_VM_NAME")
+}
+
+source "hyperv-null" "smoke" {
+  powershell_direct_vm_name = var.ps_vm_name
+  communicator              = "powershell-direct"
+
+  powershell_direct_username = env("HYPERV_PS_USERNAME")
+  powershell_direct_password = env("HYPERV_PS_PASSWORD")
+}
+
+build {
+  sources = ["source.hyperv-null.smoke"]
+
+  provisioner "powershell" {
+    inline = [
+      "Write-Host `"Hello from $env:COMPUTERNAME`"",
+    ]
+  }
+}
+```
+
+Set the following environment variables before running `packer build`:
+
+- `HYPERV_PS_VM_NAME` – Existing VM name accessible via PowerShell Direct.
+- `HYPERV_PS_USERNAME` – Local administrator account inside the VM.
+- `HYPERV_PS_PASSWORD` – Password for the account above.
+
+Because the builder talks to a running VM, ensure the guest is started and
+PowerShell Direct is available. Provisioners execute in-place, so take snapshots
+or reset state manually if you need to rerun the template.

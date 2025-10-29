@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	hypervcommon "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common"
+	"github.com/hashicorp/packer-plugin-hyperv/communicator/powershelldirect"
 	"github.com/hashicorp/packer-plugin-sdk/bootcommand"
 	"github.com/hashicorp/packer-plugin-sdk/common"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
@@ -200,6 +201,26 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 	state.Put("hook", hook)
 	state.Put("ui", ui)
 
+	if strings.EqualFold(b.config.SSHConfig.Comm.Type, powershelldirect.Type) && strings.TrimSpace(b.config.SSHConfig.PowerShellDirect.VMName) == "" {
+		b.config.SSHConfig.PowerShellDirect.VMName = b.config.VMName
+	}
+
+	connectStep := &communicator.StepConnect{
+		Config:    &b.config.SSHConfig.Comm,
+		Host:      hypervcommon.CommHost(b.config.SSHConfig.Comm.Host()),
+		SSHConfig: b.config.SSHConfig.Comm.SSHConfigFunc(),
+	}
+
+	if strings.EqualFold(b.config.SSHConfig.Comm.Type, powershelldirect.Type) {
+		connectStep.Host = hypervcommon.PowerShellDirectHost()
+		connectStep.SSHConfig = nil
+		connectStep.CustomConnect = map[string]multistep.Step{
+			powershelldirect.Type: &hypervcommon.StepConnectPowerShellDirect{
+				Config: &b.config.SSHConfig.PowerShellDirect,
+			},
+		}
+	}
+
 	steps := []multistep.Step{
 		&hypervcommon.StepCreateBuildDir{
 			TempPath:       b.config.TempPath,
@@ -301,11 +322,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		},
 
 		// configure the communicator ssh, winrm
-		&communicator.StepConnect{
-			Config:    &b.config.SSHConfig.Comm,
-			Host:      hypervcommon.CommHost(b.config.SSHConfig.Comm.Host()),
-			SSHConfig: b.config.SSHConfig.Comm.SSHConfigFunc(),
-		},
+		connectStep,
 
 		// provision requires communicator to be setup
 		&commonsteps.StepProvision{},
