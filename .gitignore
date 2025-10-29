@@ -2,3 +2,11 @@ main
 dist/*
 packer-plugin-scaffolding
 .docs
+*.auto.pkrvars.hcl
+*.log
+*.exe
+
+# Coding Agent
+AGENTS.md
+CLAUDE.md
+.github/copilot-instructions.md
