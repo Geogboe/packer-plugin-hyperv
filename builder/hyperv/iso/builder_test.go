@@ -189,15 +189,15 @@ func TestBuilderPrepare_FixedVHDFormat(t *testing.T) {
 	}
 	config["skip_compaction"] = true
 
-	//use_fixed_vhd_format should not work with generation = 2
+	//use_fixed_vhd_format should also work with generation = 2 (fixed VHDX)
 	config["generation"] = 2
 	b = Builder{}
 	_, warns, err = b.Prepare(config)
 	if len(warns) > 0 {
 		t.Fatalf("bad: %#v", warns)
 	}
-	if err == nil {
-		t.Fatal("should have error")
+	if err != nil {
+		t.Fatalf("bad err: %s", err)
 	}
 }
 
