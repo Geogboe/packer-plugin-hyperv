@@ -2,6 +2,16 @@
 The `Hyperv` multi-component plugin can be used with HashiCorp [Packer](https://www.packer.io)
 to create custom images. For the full list of available features for this plugin see [docs](docs).
 
+## Feature changes in this fork
+
+- Added a new `hyperv-null` builder that connects to an existing Hyper-V VM and only runs provisioners. This is useful for iterating on communicator and provisioner logic without cloning or exporting new guests.
+- Introduced a new `powershell-direct` communicator that allows Packer to communicate with Hyper-V VMs using PowerShell Direct. This enables running commands and scripts inside the VM without requiring network connectivity, simplifying the provisioning process for Windows-based VMs.
+- Add ability to create fixed disks on gen 2 vms
+
+## Future Roadmap Items
+
+- Allow connecting and building on remote hyper-v hosts
+
 ## Installation
 
 ### Using pre-built releases
