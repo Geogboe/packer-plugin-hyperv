@@ -33,6 +33,13 @@ source "hyperv-iso" "hvsock" {
   enable_secure_boot = false
   generation        = 2
   switch_name       = "Default Switch"
+
+  // Boot command to bypass "Press any key to boot from CD or DVD..."
+  boot_command      = ["<spacebar><wait><spacebar><wait><enter>"]
+  boot_wait         = "1s"
+  
+  // Provide autounattend.xml for automated installation
+  cd_files          = ["./Autounattend.xml"]
   
   // Basic shutdown command
   shutdown_command  = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\""

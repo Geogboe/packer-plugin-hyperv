@@ -265,11 +265,15 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			GuestAdditionsPath: b.config.GuestAdditionsPath,
 			Generation:         b.config.Generation,
 		},
-		&commonsteps.StepCreateCD{
-			Files:   b.config.CDConfig.CDFiles,
-			Content: b.config.CDConfig.CDContent,
-			Label:   b.config.CDConfig.CDLabel,
-		},
+		func() multistep.Step {
+			log.Printf("DEBUG: CDConfig.CDFiles: %v", b.config.CDConfig.CDFiles)
+			log.Printf("DEBUG: SecondaryDvdImages: %v", b.config.SecondaryDvdImages)
+			return &commonsteps.StepCreateCD{
+				Files:   b.config.CDConfig.CDFiles,
+				Content: b.config.CDConfig.CDContent,
+				Label:   b.config.CDConfig.CDLabel,
+			}
+		}(),
 		&hypervcommon.StepMountSecondaryDvdImages{
 			IsoPaths:   b.config.SecondaryDvdImages,
 			Generation: b.config.Generation,
