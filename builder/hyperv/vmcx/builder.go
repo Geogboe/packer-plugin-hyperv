@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/shutdowncommand"
 	"github.com/hashicorp/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
+	"github.com/jasonsimons/packer-plugin-psrp/communicator/psrp"
 )
 
 const (
@@ -345,11 +346,17 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			GroupInterval: b.config.BootConfig.BootGroupInterval,
 		},
 
-		// configure the communicator ssh, winrm
+		// configure the communicator ssh, winrm, or psrp
 		&communicator.StepConnect{
 			Config:    &b.config.CommConfig.Comm,
 			Host:      hypervcommon.CommHost(b.config.CommConfig.Comm.Host()),
 			SSHConfig: b.config.CommConfig.Comm.SSHConfigFunc(),
+			CustomConnect: map[string]multistep.Step{
+				"psrp": &psrp.StepConnect{
+					Config: &b.config.CommConfig.PSRP,
+					Host:   hypervcommon.PSRPHost(&b.config.CommConfig),
+				},
+			},
 		},
 
 		// provision requires communicator to be setup
