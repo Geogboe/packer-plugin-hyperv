@@ -61,7 +61,7 @@ type Config struct {
 	commonsteps.ISOConfig          `mapstructure:",squash"`
 	bootcommand.BootConfig         `mapstructure:",squash"`
 	hypervcommon.OutputConfig      `mapstructure:",squash"`
-	hypervcommon.SSHConfig         `mapstructure:",squash"`
+	hypervcommon.CommConfig        `mapstructure:",squash"`
 	hypervcommon.CommonConfig      `mapstructure:",squash"`
 	shutdowncommand.ShutdownConfig `mapstructure:",squash"`
 	// Packer normally halts the virtual machine after all provisioners have
@@ -124,7 +124,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	errs = packersdk.MultiErrorAppend(errs, b.config.BootConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.HTTPConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.OutputConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)...)
-	errs = packersdk.MultiErrorAppend(errs, b.config.SSHConfig.Prepare(&b.config.ctx)...)
+	errs = packersdk.MultiErrorAppend(errs, b.config.CommConfig.Prepare(&b.config.ctx)...)
 	errs = packersdk.MultiErrorAppend(errs, b.config.ShutdownConfig.Prepare(&b.config.ctx)...)
 
 	commonErrs, commonWarns := b.config.CommonConfig.Prepare(&b.config.ctx, &b.config.PackerConfig)
@@ -302,9 +302,9 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 		// configure the communicator ssh, winrm
 		&communicator.StepConnect{
-			Config:    &b.config.SSHConfig.Comm,
-			Host:      hypervcommon.CommHost(b.config.SSHConfig.Comm.Host()),
-			SSHConfig: b.config.SSHConfig.Comm.SSHConfigFunc(),
+			Config:    &b.config.CommConfig.Comm,
+			Host:      hypervcommon.CommHost(b.config.CommConfig.Comm.Host()),
+			SSHConfig: b.config.CommConfig.Comm.SSHConfigFunc(),
 		},
 
 		// provision requires communicator to be setup
@@ -312,7 +312,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 		// Remove ephemeral key from authorized_hosts if using SSH communicator
 		&commonsteps.StepCleanupTempKeys{
-			Comm: &b.config.SSHConfig.Comm,
+			Comm: &b.config.CommConfig.Comm,
 		},
 
 		&hypervcommon.StepShutdown{

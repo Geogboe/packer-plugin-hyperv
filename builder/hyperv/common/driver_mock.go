@@ -54,6 +54,11 @@ type DriverMock struct {
 	GetVirtualMachineGeneration_Return uint
 	GetVirtualMachineGeneration_Err    error
 
+	GetVMId_Called bool
+	GetVMId_VmName string
+	GetVMId_Return string
+	GetVMId_Err    error
+
 	GetHostAdapterIpAddressForSwitch_Called     bool
 	GetHostAdapterIpAddressForSwitch_SwitchName string
 	GetHostAdapterIpAddressForSwitch_Return     string
@@ -349,6 +354,12 @@ func (d *DriverMock) GetVirtualMachineGeneration(vmName string) (uint, error) {
 	d.GetVirtualMachineGeneration_Called = true
 	d.GetVirtualMachineGeneration_VmName = vmName
 	return d.GetVirtualMachineGeneration_Return, d.GetVirtualMachineGeneration_Err
+}
+
+func (d *DriverMock) GetVMId(vmName string) (string, error) {
+	d.GetVMId_Called = true
+	d.GetVMId_VmName = vmName
+	return d.GetVMId_Return, d.GetVMId_Err
 }
 
 func (d *DriverMock) GetHostAdapterIpAddressForSwitch(switchName string) (string, error) {
