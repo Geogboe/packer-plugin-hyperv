@@ -17,13 +17,21 @@ variable "iso_checksum" {
   default = "sha256:888969d5f34g4e03ac9d1f9786c66749" // Placeholder
 }
 
+// WARNING: This password is a placeholder for example purposes only.
+// DO NOT use this value in production. Always override via variables,
+// environment variables, or a secure secrets management solution.
+variable "psrp_password" {
+  type    = string
+  default = "Password123!" // Placeholder; must be changed in real environments
+}
+
 source "hyperv-iso" "wsman" {
   vm_name           = "psrp-wsman-test"
   iso_url           = var.iso_url
   iso_checksum      = var.iso_checksum
   communicator      = "psrp"
   psrp_username     = "Administrator"
-  psrp_password     = "Password123!"
+  psrp_password     = var.psrp_password
   psrp_transport    = "wsman"
   psrp_auth_type    = "negotiate"
   cpus              = 2
