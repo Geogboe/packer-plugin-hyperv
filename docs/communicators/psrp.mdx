@@ -1,0 +1,108 @@
+# PSRP Communicator
+
+The Hyper-V plugin supports the PSRP (PowerShell Remoting Protocol) communicator
+as an alternative to SSH and WinRM for Windows VMs. PSRP offers two transport modes:
+
+- **WSMan** - Network-based transport (similar to WinRM, over HTTP/HTTPS)
+- **HvSocket** - PowerShell Direct via Hyper-V sockets (no network required)
+
+## Why Use PSRP?
+
+| Feature | SSH | WinRM | PSRP |
+|---------|-----|-------|------|
+| Windows Support | Requires OpenSSH | Native | Native |
+| Network Required | Yes | Yes | No (HvSocket) |
+| PowerShell Integration | Limited | Good | Best |
+| File Transfer Speed | Good | Slow | Good |
+
+## Basic Example (WSMan Transport)
+
+This example uses PSRP over WSMan (network-based, similar to WinRM):
+
+```hcl
+source "hyperv-iso" "windows" {
+  vm_name          = "windows-2022"
+  iso_url          = "path/to/windows.iso"
+  iso_checksum     = "sha256:..."
+  
+  communicator     = "psrp"
+  psrp_username    = "Administrator"
+  psrp_password    = "SecurePassword123!"
+  psrp_port        = 5985
+  psrp_use_ssl     = false
+  
+  shutdown_command = "shutdown /s /t 0"
+}
+```
+
+## HvSocket Transport (PowerShell Direct)
+
+HvSocket uses Hyper-V sockets for communication, requiring no network connectivity.
+The VM GUID is automatically detected from the running VM:
+
+```hcl
+source "hyperv-iso" "windows" {
+  vm_name          = "windows-2022"
+  iso_url          = "path/to/windows.iso"
+  iso_checksum     = "sha256:..."
+  
+  communicator     = "psrp"
+  psrp_transport   = "hvsock"
+  psrp_username    = "Administrator"
+  psrp_password    = "SecurePassword123!"
+  
+  shutdown_command = "shutdown /s /t 0"
+}
+```
+
+> **Note:** HvSocket transport requires the Hyper-V host to have PowerShell Direct
+> capabilities and the guest to have the Hyper-V integration services installed.
+
+## Configuration Reference
+
+### Required Options
+
+- `psrp_username` (string) - The username for authentication.
+- `psrp_password` (string) - The password for authentication.
+
+### Optional Options
+
+- `psrp_transport` (string) - Transport to use: `wsman` (default) or `hvsock`.
+- `psrp_port` (int) - Port for WSMan transport. Default: 5985 (HTTP) or 5986 (HTTPS).
+- `psrp_use_ssl` (bool) - Use HTTPS for WSMan transport. Default: false.
+- `psrp_insecure` (bool) - Skip TLS certificate validation. Default: false.
+- `psrp_timeout` (duration) - Timeout for connection attempts. Default: 5m.
+- `psrp_auth` (string) - Authentication method: `basic`, `ntlm`, `negotiate`, or `kerberos`.
+- `psrp_vmid` (string) - VM GUID for HvSocket (auto-detected if not specified).
+
+## Authentication Methods
+
+PSRP supports multiple authentication methods:
+
+| Method | Description | Use Case |
+|--------|-------------|----------|
+| `basic` | Basic authentication | Simple setups, development |
+| `ntlm` | NTLM authentication | Domain or local accounts (default) |
+| `negotiate` | Negotiate (SPNEGO) | Domain environments |
+| `kerberos` | Kerberos authentication | Active Directory domains |
+
+Example with NTLM:
+
+```hcl
+source "hyperv-iso" "windows" {
+  communicator  = "psrp"
+  psrp_username = "Administrator"
+  psrp_password = "SecurePassword123!"
+  psrp_auth     = "ntlm"
+  # ... other options
+}
+```
+
+## Comparison with WinRM
+
+PSRP provides several advantages over the built-in WinRM communicator:
+
+1. **Better PowerShell Integration** - Direct access to PowerShell's remoting layer
+2. **HvSocket Support** - No network setup required for PowerShell Direct
+3. **Improved Error Handling** - Better error messages from the PowerShell layer
+4. **Stream-based File Transfer** - More efficient file uploads for provisioning
