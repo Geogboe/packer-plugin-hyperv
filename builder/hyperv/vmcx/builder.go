@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	hypervcommon "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common"
-	powershell "github.com/hashicorp/packer-plugin-hyperv/builder/hyperv/common/powershell"
 	"github.com/hashicorp/packer-plugin-sdk/bootcommand"
 	"github.com/hashicorp/packer-plugin-sdk/common"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
@@ -138,48 +137,6 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("The clone_from_vm_name must be specified if "+
 				"clone_from_vmcx_path is not specified."))
 		}
-	} else {
-		virtualMachineExists, err := powershell.DoesVirtualMachineExist(b.config.CloneFromVMName)
-		if err != nil {
-			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine to clone "+
-				"from exists: %s", err))
-		} else {
-			if !virtualMachineExists {
-				errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Virtual machine '%s' to clone from does not "+
-					"exist.", b.config.CloneFromVMName))
-			} else {
-				b.config.Generation, err = powershell.GetVirtualMachineGeneration(b.config.CloneFromVMName)
-				if err != nil {
-					errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting virtual machine to clone "+
-						"from generation: %s", err))
-				}
-
-				if b.config.CloneFromSnapshotName != "" {
-					virtualMachineSnapshotExists, err := powershell.DoesVirtualMachineSnapshotExist(
-						b.config.CloneFromVMName, b.config.CloneFromSnapshotName)
-					if err != nil {
-						errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine "+
-							"snapshot to clone from exists: %s", err))
-					} else {
-						if !virtualMachineSnapshotExists {
-							errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Virtual machine snapshot '%s' on "+
-								"virtual machine '%s' to clone from does not exist.",
-								b.config.CloneFromSnapshotName, b.config.CloneFromVMName))
-						}
-					}
-				}
-
-				virtualMachineOn, err := powershell.IsVirtualMachineOn(b.config.CloneFromVMName)
-				if err != nil {
-					errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("Failed detecting if virtual machine to "+
-						"clone is running: %s", err))
-				} else {
-					if virtualMachineOn {
-						warnings = hypervcommon.Appendwarns(warnings, "Cloning from a virtual machine that is running.")
-					}
-				}
-			}
-		}
 	}
 
 	if b.config.CloneFromVMCXPath == "" {
@@ -251,6 +208,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			Force: b.config.PackerForce,
 			Path:  b.config.OutputDir,
 		},
+		&StepValidateClone{},
 		&commonsteps.StepDownload{
 			Checksum:    b.config.ISOChecksum,
 			Description: "ISO",
