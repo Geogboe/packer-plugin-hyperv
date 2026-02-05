@@ -100,7 +100,10 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Turn Off Firewall</Description>
+                    <Description>Turn Off Firewall (TESTING ONLY - do not use in production)</Description>
+                    <!-- WARNING: Disables Windows Firewall for all profiles. This is intended for testing/non-production environments only.
+                         Do NOT use this in production. Instead, configure the minimum required firewall rules rather than disabling
+                         the firewall globally. -->
                     <CommandLine>cmd.exe /c netsh advfirewall set allprofiles state off</CommandLine>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
