@@ -28,7 +28,7 @@ packer {
   required_plugins {
     hyperv = {
       version = ">= 1.1.5"
-      source  = "github.com/hashicorp/hyperv"
+      source  = "github.com/smnsjas/hyperv"
     }
   }
 }
@@ -36,7 +36,7 @@ packer {
 
 #### Manual installation
 
-You can find pre-built binary releases of the plugin [here](https://github.com/hashicorp/packer-plugin-hyperv/releases).
+You can find pre-built binary releases of the plugin [here](https://github.com/smnsjas/packer-plugin-hyperv/releases).
 Once you have downloaded the latest archive corresponding to your target OS,
 uncompress it to retrieve the plugin binary file corresponding to your platform.
 To install the plugin, please follow the Packer documentation on
