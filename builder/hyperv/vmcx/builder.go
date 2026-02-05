@@ -142,7 +142,7 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 	if b.config.CloneFromVMCXPath == "" {
 		if b.config.CloneFromVMName == "" {
 			errs = packersdk.MultiErrorAppend(errs, fmt.Errorf("the clone_from_vmcx_path must be specified if "+
-				"clone_from_vm_name must is not specified."))
+				"clone_from_vm_name is not specified."))
 		}
 	} else {
 		if _, err := os.Stat(b.config.CloneFromVMCXPath); os.IsNotExist(err) {
