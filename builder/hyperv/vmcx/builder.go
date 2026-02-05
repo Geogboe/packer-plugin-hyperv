@@ -294,6 +294,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&hypervcommon.StepRun{
 			Headless:   b.config.Headless,
 			SwitchName: b.config.SwitchName,
+			SkipHostIP: b.config.Comm.Type == "psrp" && b.config.PSRPTransport == "hvsock",
 		},
 
 		&hypervcommon.StepTypeBootCommand{

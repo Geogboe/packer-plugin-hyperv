@@ -19,6 +19,7 @@ type StepRun struct {
 	Headless      bool
 	SwitchName    string
 	vmName        string
+	SkipHostIP    bool
 }
 
 func (s *StepRun) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -27,32 +28,38 @@ func (s *StepRun) Run(ctx context.Context, state multistep.StateBag) multistep.S
 	vmName := state.Get("vmName").(string)
 
 	ui.Say("Determine Host IP for HyperV machine...")
-	hostIp, err := driver.GetHostAdapterIpAddressForSwitch(s.SwitchName)
-	if err != nil {
-		err := fmt.Errorf("Error getting host adapter ip address: %s", err)
-		state.Put("error", err)
-		ui.Error(err.Error())
-		return multistep.ActionHalt
-	}
+	var hostIp string
+	var err error
 
-	// If running in WSL and the user has specified the WSL switch, then they
-	// almost certainly want the WSL distribution IP as the host IP as this is
-	// what our http server will be listening on.
-	if wsl.IsWSL() {
-		switchNet := net.IPNet{IP: net.ParseIP(hostIp), Mask: net.IPv4Mask(255, 255, 240, 0)}
-		addrs, err := net.InterfaceAddrs()
-		if err == nil {
-			for _, address := range addrs {
-				if ipnet, ok := address.(*net.IPNet); ok && switchNet.Contains(ipnet.IP) {
-					hostIp = ipnet.IP.String()
-					break
+	if !s.SkipHostIP {
+		hostIp, err = driver.GetHostAdapterIpAddressForSwitch(s.SwitchName)
+		if err != nil {
+			err := fmt.Errorf("Error getting host adapter ip address: %s", err)
+			state.Put("error", err)
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		}
+
+		// If running in WSL and the user has specified the WSL switch, then they
+		// almost certainly want the WSL distribution IP as the host IP as this is
+		// what our http server will be listening on.
+		if wsl.IsWSL() {
+			switchNet := net.IPNet{IP: net.ParseIP(hostIp), Mask: net.IPv4Mask(255, 255, 240, 0)}
+			addrs, err := net.InterfaceAddrs()
+			if err == nil {
+				for _, address := range addrs {
+					if ipnet, ok := address.(*net.IPNet); ok && switchNet.Contains(ipnet.IP) {
+						hostIp = ipnet.IP.String()
+						break
+					}
 				}
 			}
 		}
+		ui.Say(fmt.Sprintf("Host IP for the HyperV machine: %s", hostIp))
+		state.Put("http_ip", hostIp)
+	} else {
+		ui.Say("Skipping Host IP determination (not required for this transport).")
 	}
-
-	ui.Say(fmt.Sprintf("Host IP for the HyperV machine: %s", hostIp))
-	state.Put("http_ip", hostIp)
 
 	if !s.Headless {
 		ui.Say("Attempting to connect with vmconnect...")
