@@ -374,13 +374,13 @@ func (b *Builder) checkDiskSize() error {
 	log.Printf("%s: %v", "DiskSize", b.config.DiskSize)
 
 	if b.config.DiskSize < hypervcommon.MinDiskSize {
-		return fmt.Errorf("disk_size: virtual machine requires disk space >= %v GB, but defined: %v",
-			hypervcommon.MinDiskSize, b.config.DiskSize/1024)
+		return fmt.Errorf("disk_size: virtual machine requires disk space >= %v MB, but defined: %v MB",
+			hypervcommon.MinDiskSize, b.config.DiskSize)
 	} else if b.config.DiskSize > hypervcommon.MaxDiskSize && !b.config.FixedVHD {
-		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
-			hypervcommon.MaxDiskSize, b.config.DiskSize/1024)
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v GB",
+			hypervcommon.MaxDiskSize/1024, b.config.DiskSize/1024)
 	} else if b.config.DiskSize > hypervcommon.MaxVHDSize && b.config.FixedVHD {
-		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v",
+		return fmt.Errorf("disk_size: virtual machine requires disk space <= %v GB, but defined: %v GB",
 			hypervcommon.MaxVHDSize/1024, b.config.DiskSize/1024)
 	}
 
