@@ -5,7 +5,7 @@ to create custom images. For the full list of available features for this plugin
 
 ## Key Features
 
-* **PSRP Communicator Support:** Provision Windows VMs using the PowerShell Remoting Protocol (PSRP) instead of WinRM, with full PowerShell stream support (Output, Error, Warning, Verbose, Debug, Information).
+* **PSRP Communicator Support:** Provision Windows VMs using the PowerShell Remoting Protocol (PSRP) instead of WinRM, with PowerShell stream support (Output, Error, Warning, Verbose, Debug, Information, Progress).
 * **HvSocket Transport (PowerShell Direct):** Connect directly to VMs via Hyper-V Sockets (`psrp_transport = "hvsock"`), eliminating the need for network interfaces, IP addresses, or firewall configuration on the guest.
 * **Automatic VMID Detection:** The plugin automatically detects the VM's GUID for seamless HvSocket connections.
 * **WSMan Transport:** Network-based PSRP over HTTP/HTTPS with support for Basic, NTLM, Negotiate, and Kerberos authentication.

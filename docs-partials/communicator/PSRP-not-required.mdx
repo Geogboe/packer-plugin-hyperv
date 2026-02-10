@@ -1,8 +1,10 @@
+- `psrp_host` (string) - The hostname or IP address of the remote host for WSMan connections. If not specified, the IP address is auto-detected. Ignored for `hvsock` transport.
+
 - `psrp_transport` (string) - The PSRP transport to use. Valid values are `wsman` (default) and `hvsock`.
   `wsman` uses WS-Management over HTTP/HTTPS.
   `hvsock` uses Hyper-V sockets to connect directly to the VM without network connectivity (PowerShell Direct).
 
-- `psrp_username` (string) - The username for PSRP authentication. Required for `basic` and `ntlm` auth types. Optional for `kerberos` and `negotiate` on Windows (SSO with the logged-in user's credentials when omitted).
+- `psrp_username` (string) - The username for PSRP authentication. Required for `basic` and `ntlm` auth types. Optional for `kerberos` and `negotiate` (SSO with the logged-in user's Windows credentials when omitted).
 
 - `psrp_password` (string) - The password for PSRP authentication.
 
@@ -20,18 +22,6 @@
 
 - `psrp_domain` (string) - The domain name for NTLM or Negotiate authentication.
 
-- `psrp_realm` (string) - The Kerberos realm. Optional on Windows (auto-detected via SSPI). On Unix, auto-detected from `krb5.conf` if omitted.
+- `psrp_realm` (string) - The Kerberos realm. Optional (auto-detected via SSPI on Windows).
 
 - `psrp_configuration_name` (string) - The PowerShell configuration/endpoint name to connect to. Used with `hvsock` transport.
-
-- `psrp_krb5_conf_path` (string) - Path to the Kerberos krb5.conf file. Defaults to `/etc/krb5.conf` on Unix. Ignored on Windows when SSPI is used.
-
-- `psrp_keytab_path` (string) - Path to a Kerberos keytab file. Used on Unix for Kerberos authentication. Takes priority over password and ccache.
-
-- `psrp_ccache_path` (string) - Path to a Kerberos credential cache file. Used on Unix for Kerberos authentication. Takes priority over password.
-
-- `psrp_idle_timeout` (string) - ISO 8601 duration for the session idle timeout. Defaults to `"PT30M"` (30 minutes).
-
-- `psrp_keepalive_interval` (duration string) - Interval between keepalive pings. Defaults to disabled (`0`).
-
-- `psrp_runspace_open_timeout` (duration string) - Timeout for opening the PowerShell runspace. Defaults to `"60s"`.
