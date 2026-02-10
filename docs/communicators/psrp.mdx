@@ -55,12 +55,12 @@ source "hyperv-iso" "windows" {
   iso_url    = "path/to/windows.iso"
   iso_checksum = "sha256:..."
 
-  communicator     = "psrp"
-  psrp_username    = "Administrator"
-  psrp_password    = var.admin_password
-  psrp_port        = 5985
-  psrp_use_tls     = false
-  psrp_auth_type   = "ntlm"
+  communicator   = "psrp"
+  psrp_username  = "Administrator"
+  psrp_password  = var.admin_password
+  psrp_port      = 5985
+  psrp_use_tls   = false
+  psrp_auth_type = "ntlm"
 
   shutdown_command = "shutdown /s /t 5 /f"
 }
@@ -77,12 +77,13 @@ options is documented in the builder configuration references:
 ### Required Options
 
 - `psrp_username` (string) - The username for authentication. Required for
-  `basic` and `ntlm` auth types. Optional for `kerberos` and `negotiate` on
-  Windows (SSO with logged-in user's credentials when omitted).
+  `basic` and `ntlm` auth types. Optional for `kerberos` and `negotiate`
+  (SSO with logged-in user's Windows credentials when omitted).
 - `psrp_password` (string) - The password for authentication.
 
 ### Transport Options
 
+- `psrp_host` (string) - Hostname or IP for WSMan connections. Auto-detected if not specified. Ignored for `hvsock`.
 - `psrp_transport` (string) - `wsman` (default) or `hvsock`.
 - `psrp_vmid` (string) - VM GUID for HvSocket (auto-detected if not specified).
 - `psrp_port` (int) - WSMan port. Default: `5985` (HTTP) or `5986` (HTTPS).
@@ -96,18 +97,7 @@ options is documented in the builder configuration references:
 - `psrp_auth_type` (string) - Authentication method: `basic`, `ntlm`,
   `negotiate` (default), or `kerberos`.
 - `psrp_domain` (string) - Domain name for NTLM or Negotiate authentication.
-- `psrp_realm` (string) - Kerberos realm (auto-detected on Windows/SSPI).
-
-### Kerberos Options (Unix)
-
-These options apply when using Kerberos or Negotiate authentication on
-Unix/macOS, where the pure Go `gokrb5` library is used instead of Windows SSPI:
-
-- `psrp_krb5_conf_path` (string) - Path to `krb5.conf`. Default: `/etc/krb5.conf`.
-- `psrp_keytab_path` (string) - Path to keytab file (highest priority credential).
-- `psrp_ccache_path` (string) - Path to credential cache file.
-
-Credential priority on Unix: keytab > ccache > password.
+- `psrp_realm` (string) - Kerberos realm (auto-detected via SSPI on Windows).
 
 ## Authentication Methods
 
@@ -118,15 +108,9 @@ Credential priority on Unix: keytab > ccache > password.
 | Basic | `basic` | Username + password (avoid over non-TLS connections) |
 | Kerberos | `kerberos` | Ticket-based, for Active Directory environments |
 
-### Windows SSPI vs Unix Kerberos
-
-On **Windows hosts**, Kerberos and Negotiate authentication use the native SSPI
-subsystem. When `psrp_username` is omitted, SSPI authenticates with the
-logged-in user's credentials (SSO).
-
-On **Unix/macOS hosts**, a pure Go Kerberos library (`gokrb5`) is used.
-`psrp_username` is always required, along with a `krb5.conf` file and either
-a password, keytab, or credential cache.
+Kerberos and Negotiate authentication use the native Windows SSPI subsystem.
+When `psrp_username` is omitted, SSPI authenticates with the logged-in user's
+credentials (SSO).
 
 ## Comparison with WinRM
 
@@ -134,7 +118,8 @@ PSRP provides several advantages over the built-in WinRM communicator:
 
 1. **HvSocket Support** - No network setup required for Hyper-V builds
 2. **Rich Stream Handling** - Access to all 7 PowerShell streams (Output, Error,
-   Warning, Verbose, Debug, Information, Progress)
+   Warning, Verbose, Debug, Information, Progress) though Progress is discarded
+   by default
 3. **Better Error Messages** - Error records include script line numbers and
    stack traces
 4. **Native PowerShell** - Commands execute directly in a PSRP runspace rather
