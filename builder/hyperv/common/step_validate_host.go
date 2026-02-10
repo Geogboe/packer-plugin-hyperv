@@ -19,6 +19,10 @@ import (
 type StepValidateHost struct {
 	EnableVirtualizationExtensions bool
 	RamSize                        uint
+
+	// Injectable for testing. Nil means use real PowerShell functions.
+	HasVirtExtFunc    func() (bool, error)
+	GetHostMemoryFunc func() float64
 }
 
 func (s *StepValidateHost) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -26,20 +30,29 @@ func (s *StepValidateHost) Run(ctx context.Context, state multistep.StateBag) mu
 
 	// Validate virtualization extensions if enabled.
 	if s.EnableVirtualizationExtensions {
-		hasExt, err := powershell.HasVirtualMachineVirtualizationExtensions()
+		hasVirtExt := powershell.HasVirtualMachineVirtualizationExtensions
+		if s.HasVirtExtFunc != nil {
+			hasVirtExt = s.HasVirtExtFunc
+		}
+
+		hasExt, err := hasVirtExt()
 		if err != nil {
-			state.Put("error", fmt.Errorf("failed detecting virtualization extensions support: %w", err))
+			err := fmt.Errorf("failed detecting virtualization extensions support: %w", err)
+			ui.Error(err.Error())
+			state.Put("error", err)
 			return multistep.ActionHalt
 		}
 		if !hasExt {
-			state.Put("error", fmt.Errorf("this version of Hyper-V does not support "+
-				"virtual machine virtualization extensions; use Windows 10 or Windows Server 2016 or newer"))
+			err := fmt.Errorf("this version of Hyper-V does not support " +
+				"virtual machine virtualization extensions; use Windows 10 or Windows Server 2016 or newer")
+			ui.Error(err.Error())
+			state.Put("error", err)
 			return multistep.ActionHalt
 		}
 	}
 
 	// Check host memory (warning only).
-	if warning := checkHostAvailableMemory(s.RamSize); warning != "" {
+	if warning := s.checkHostAvailableMemory(); warning != "" {
 		ui.Say(fmt.Sprintf("Warning: %s", warning))
 	}
 
@@ -47,6 +60,20 @@ func (s *StepValidateHost) Run(ctx context.Context, state multistep.StateBag) mu
 }
 
 func (s *StepValidateHost) Cleanup(state multistep.StateBag) {}
+
+func (s *StepValidateHost) checkHostAvailableMemory() string {
+	getMemory := powershell.GetHostAvailableMemory
+	if s.GetHostMemoryFunc != nil {
+		getMemory = s.GetHostMemoryFunc
+	}
+
+	freeMB := getMemory()
+	if (freeMB - float64(s.RamSize)) < LowRam {
+		return "Hyper-V might fail to create a VM if there is not enough free memory in the system."
+	}
+
+	return ""
+}
 
 // detectSwitchName auto-detects a Hyper-V virtual switch via PowerShell.
 // Called from CommonConfig.Prepare() when no switch_name is configured.
@@ -61,18 +88,4 @@ func detectSwitchName(buildName string) string {
 	}
 
 	return fmt.Sprintf("packer-%s", buildName)
-}
-
-func checkHostAvailableMemory(ramSize uint) string {
-	powershellAvailable, _, _ := powershell.IsPowershellAvailable()
-
-	if powershellAvailable {
-		freeMB := powershell.GetHostAvailableMemory()
-
-		if (freeMB - float64(ramSize)) < LowRam {
-			return "Hyper-V might fail to create a VM if there is not enough free memory in the system."
-		}
-	}
-
-	return ""
 }
